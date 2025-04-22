@@ -12,14 +12,15 @@ class Pato:
         self.frames_muerto = []
         self.frame_actual = 0
         self.tiempo_animacion = 0
-        self.ajustar_animacion = 5  # Velocidad de animación: menor = más rápida
+        self.ajustar_animacion = 1  # Velocidad de animación: menor = más rápida
 
         # Cargar imagen con sprites
         sprite_sheet = pygame.image.load("assets/duck/sprite_newduck_right.png").convert_alpha()
         # Dividir en frames
         for i in range(3):  # 3 frames
             frame = sprite_sheet.subsurface(pygame.Rect(i * 128, 0, 128, 128))
-            self.frames_derecha.append(frame)
+            frame_escalado = pygame.transform.scale(frame, (64, 64))  # aquí haces el pato más pequeño
+            self.frames_derecha.append(frame_escalado)
         # Voltear los frames para la izquierda
         self.frames_izquierda = [pygame.transform.flip(frame, True, False) for frame in self.frames_derecha]
 
@@ -28,7 +29,8 @@ class Pato:
         # Dividir en frames
         for i in range(3):
             frame = sprite_diagonal.subsurface(pygame.Rect(i * 128, 0, 128, 128))
-            self.frames_diagonal_derecha.append(frame)
+            frame_escalado = pygame.transform.scale(frame, (64, 64))  # aquí haces el pato más pequeño
+            self.frames_diagonal_derecha.append(frame_escalado)
         # Generar versiones volteadas hacia la izquierda
         self.frames_diagonal_izquierda = [pygame.transform.flip(frame, True, False) for frame in self.frames_diagonal_derecha]
 
@@ -36,7 +38,8 @@ class Pato:
         sprite_muerto = pygame.image.load("assets/duck/sprite_newduck_death.png").convert_alpha()
         for i in range(4):  # 4 frames
             frame = sprite_muerto.subsurface(pygame.Rect(i * 128, 0, 128, 128))
-            self.frames_muerto.append(frame)
+            frame_escalado = pygame.transform.scale(frame, (64, 64))  # aquí haces el pato más pequeño
+            self.frames_muerto.append(frame_escalado)
         
         self.image = self.frames_derecha[0]
         self.rect = self.image.get_rect()
@@ -44,7 +47,7 @@ class Pato:
         self.rect.x = random.randint(0, 768 - self.rect.width)
         self.rect.y = 540  # Inicio desde zona de tierra
 
-        self.velocidad = 2  # Velocidad de movimiento
+        self.velocidad = 3  # Velocidad de movimiento
         self.direccion = "derecha"  # Dirección inicial
         self.nuevo_destino()  # Definir un destino aleatorio al inicio
 
