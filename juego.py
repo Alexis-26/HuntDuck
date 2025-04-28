@@ -13,6 +13,7 @@ class Juego:
         self.fps = 60
         self.timer = pygame.time.Clock()
         self.running = True
+        self.mostrar_inicio = True
 
         self.detector_mano = DetectorMano(self.SCREEN_WIDTH, self.SCREEN_HEIGHT)
 
@@ -22,7 +23,16 @@ class Juego:
         self.clouds_down = pygame.image.load("assets/bg/sprite_bg_clouds2.png")
         self.ground = pygame.image.load("assets/bg/sprite_bg_ground.png")
         self.puntero = pygame.image.load("assets/ui/sprite_aim.png").convert_alpha()
-        pygame.mouse.set_visible(False)
+        #pygame.mouse.set_visible(False)
+
+        # Fuentes
+        self.font_menu = pygame.font.Font("assets\Retro Gaming.ttf", size=30)
+        self.font_titulo = pygame.font.Font("assets\Retro Gaming.ttf", size=60)
+
+        # Botones
+        self.boton_jugar = pygame.Rect(self.SCREEN_WIDTH / 2 - 100,
+                                       self.SCREEN_HEIGHT / 2 - 50, 200, 50)
+        self.texto_boton_jugar = self.font_menu.render("Jugar", True, "#000000")
 
         # Cargar sonidos
         pygame.mixer.music.load("assets/ui/MeltdownTheme.wav")
@@ -49,6 +59,39 @@ class Juego:
 
         self.generar_patos()
 
+    def pantalla_inicio(self):
+        self.SCREEN.blit(self.background, (0, 0))
+        self.SCREEN.blit(self.clouds_up, (0, 0))
+        self.SCREEN.blit(self.clouds_down, (0, 0))
+        self.SCREEN.blit(self.ground, (0, 0))
+        
+        # Texto y coordenadas base
+        titulo = "Cazador de Rostros"
+        color_texto = "#FFFFFF"
+        color_borde = (0, 0, 0)
+        desfase = 2  # grosor del borde
+        x = self.SCREEN_WIDTH / 2 - 380
+        y = self.SCREEN_HEIGHT / 2 - 200
+
+        # Dibujar el borde negro (alrededor del texto blanco)
+        for dx in [-desfase, 0, desfase]:
+            for dy in [-desfase, 0, desfase]:
+                if dx != 0 or dy != 0:  # no sobrescribir el centro todavía
+                    borde = self.font_titulo.render(titulo, True, color_borde)
+                    self.SCREEN.blit(borde, (x + dx, y + dy))
+
+        # Ahora dibujar el texto blanco en el centro
+        texto = self.font_titulo.render(titulo, True, color_texto)
+        self.SCREEN.blit(texto, (x, y))
+        # # Sombra (dibujar primero en negro y un poco desplazado)
+        # sombra = self.font_titulo.render("Cazador de Rostros", True, (0, 0, 0))
+        # self.SCREEN.blit(sombra, (self.SCREEN_WIDTH / 2 - 380 + 5, self.SCREEN_HEIGHT / 2 - 200 + 5))
+        # self.SCREEN.blit(self.font_titulo.render("Cazador de Rostros", True, "#FFFFFF"), (self.SCREEN_WIDTH / 2 - 380, 
+        #                                                                                   self.SCREEN_HEIGHT / 2 - 200))
+        pygame.draw.rect(self.SCREEN, "#FFFFFF", self.boton_jugar)
+        self.SCREEN.blit(self.texto_boton_jugar, dest=(self.boton_jugar.x + 50, self.boton_jugar.y + 10))
+        pygame.display.update()
+
     def generar_patos(self):
         if len(self.patos) < self.patos_en_nivel:
             pato = Pato()
@@ -69,6 +112,9 @@ class Juego:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if self.boton_jugar.collidepoint(event.pos):
+                    self.mostrar_inicio = False
 
     def actualizar(self):
         # Calcular el tiempo transcurrido desde el inicio del juego
@@ -128,10 +174,14 @@ class Juego:
     def ejecutar(self):
         while self.running:
             self.manejar_eventos()
-            self.actualizar()
-            self.dibujar()
-            pygame.display.flip()
-            self.timer.tick(self.fps)
+            if self.mostrar_inicio:
+                self.pantalla_inicio()
+            else:
+                self.manejar_eventos()
+                self.actualizar()
+                self.dibujar()
+                pygame.display.flip()
+                self.timer.tick(self.fps)
 
         self.detector_mano.cerrar()
         pygame.quit()
