@@ -14,6 +14,7 @@ class Juego:
         self.timer = pygame.time.Clock()
         self.running = True
         self.mostrar_inicio = True
+        self.mostrar_final = False
 
         self.detector_mano = DetectorMano(self.SCREEN_WIDTH, self.SCREEN_HEIGHT)
 
@@ -28,11 +29,31 @@ class Juego:
         # Fuentes
         self.font_menu = pygame.font.Font("assets\Retro Gaming.ttf", size=30)
         self.font_titulo = pygame.font.Font("assets\Retro Gaming.ttf", size=60)
+        self.cazadores = pygame.image.load("assets/cazadores.png").convert_alpha()
+        self.de = pygame.image.load("assets/de.png").convert_alpha()
+        self.rostros = pygame.image.load("assets/rostros.png").convert_alpha()
+        self.game = pygame.image.load("assets/game.png").convert_alpha()
+        self.over = pygame.image.load("assets/over.png").convert_alpha()
 
         # Botones
-        self.boton_jugar = pygame.Rect(self.SCREEN_WIDTH / 2 - 100,
-                                       self.SCREEN_HEIGHT / 2 - 50, 200, 50)
-        self.texto_boton_jugar = self.font_menu.render("Jugar", True, "#000000")
+        # Crear el texto del botón
+        self.texto_jugar = self.font_menu.render("Jugar", True, "#FFFFFF")  # Texto blanco
+        self.texto_jugar_sombra = self.font_menu.render("Jugar", True, "#000000")  # Sombra negra
+
+        # Obtener el rectángulo del texto
+        self.rect_texto_jugar = self.texto_jugar.get_rect()
+        self.rect_texto_jugar.center = (self.SCREEN_WIDTH // 2, self.SCREEN_HEIGHT // 2 + 100)  # Centrado abajo
+
+        self.texto_salir = self.font_menu.render("Salir", True, "#FFFFFF")  # Texto blanco
+        self.texto_salir_sombra = self.font_menu.render("Salir", True, "#000000")  # Sombra negra
+
+        # Obtener el rectángulo del texto
+        self.rect_texto_salir = self.texto_salir.get_rect()
+        self.rect_texto_salir.center = (self.SCREEN_WIDTH // 2, self.SCREEN_HEIGHT // 2 + 100)  # Centrado abajo
+
+        # Crear el rectángulo del botón más grande que el texto
+        self.boton_jugar = self.rect_texto_jugar.inflate(40, 20)  # Más ancho y más alto
+        self.boton_salir = self.rect_texto_salir.inflate(40, 20)  # Más ancho y más alto
 
         # Cargar sonidos
         pygame.mixer.music.load("assets/ui/MeltdownTheme.wav")
@@ -57,6 +78,7 @@ class Juego:
         # Guardar el tiempo de inicio del juego
         self.tiempo_inicio = pygame.time.get_ticks()
 
+        self.patos_inicio = [Pato() for _ in range(5)]  # Crea 5 patos
         self.generar_patos()
 
     def pantalla_inicio(self):
@@ -64,32 +86,69 @@ class Juego:
         self.SCREEN.blit(self.clouds_up, (0, 0))
         self.SCREEN.blit(self.clouds_down, (0, 0))
         self.SCREEN.blit(self.ground, (0, 0))
-        
-        # Texto y coordenadas base
-        titulo = "Cazador de Rostros"
-        color_texto = "#FFFFFF"
-        color_borde = (0, 0, 0)
-        desfase = 2  # grosor del borde
-        x = self.SCREEN_WIDTH / 2 - 380
-        y = self.SCREEN_HEIGHT / 2 - 200
+        # Dibujar patos
+        for pato in self.patos_inicio:
+            pato.mover()
+            pato.actualizar_animacion()
+            pato.chequear_tierra()
+            pato.dibujar(self.SCREEN)
 
-        # Dibujar el borde negro (alrededor del texto blanco)
-        for dx in [-desfase, 0, desfase]:
-            for dy in [-desfase, 0, desfase]:
-                if dx != 0 or dy != 0:  # no sobrescribir el centro todavía
-                    borde = self.font_titulo.render(titulo, True, color_borde)
-                    self.SCREEN.blit(borde, (x + dx, y + dy))
+        # Obtener el rectángulo del sprite/texto
+        rect_cazadores = self.cazadores.get_rect()
+        rect_de = self.de.get_rect()
+        rect_rostros = self.rostros.get_rect()
+        # Centrar el rectángulo en la pantalla
+        rect_cazadores.center = (self.SCREEN_WIDTH / 2, self.SCREEN_HEIGHT / 2)
+        rect_de.center = (self.SCREEN_WIDTH / 2, self.SCREEN_HEIGHT / 2)
+        rect_rostros.center = (self.SCREEN_WIDTH / 2, self.SCREEN_HEIGHT / 2)
+        # Opcional: Si quieres moverlo un poco hacia arriba o abajo
+        rect_cazadores.y -= 200  # por ejemplo, mover 100 píxeles hacia arriba
+        rect_de.y -= 100  # por ejemplo, mover 100 píxeles hacia arriba
+        rect_rostros.y -= 0  # por ejemplo, mover 100 píxeles hacia arriba
+        # Dibujarlo
+        self.SCREEN.blit(self.cazadores, rect_cazadores)
+        self.SCREEN.blit(self.de, rect_de)
+        self.SCREEN.blit(self.rostros, rect_rostros)
 
-        # Ahora dibujar el texto blanco en el centro
-        texto = self.font_titulo.render(titulo, True, color_texto)
-        self.SCREEN.blit(texto, (x, y))
-        # # Sombra (dibujar primero en negro y un poco desplazado)
-        # sombra = self.font_titulo.render("Cazador de Rostros", True, (0, 0, 0))
-        # self.SCREEN.blit(sombra, (self.SCREEN_WIDTH / 2 - 380 + 5, self.SCREEN_HEIGHT / 2 - 200 + 5))
-        # self.SCREEN.blit(self.font_titulo.render("Cazador de Rostros", True, "#FFFFFF"), (self.SCREEN_WIDTH / 2 - 380, 
-        #                                                                                   self.SCREEN_HEIGHT / 2 - 200))
-        pygame.draw.rect(self.SCREEN, "#FFFFFF", self.boton_jugar)
-        self.SCREEN.blit(self.texto_boton_jugar, dest=(self.boton_jugar.x + 50, self.boton_jugar.y + 10))
+        # Dibujar el botón (fondo)
+        pygame.draw.rect(self.SCREEN, "#FB6222", self.boton_jugar, border_radius=10)  # Botón blanco
+
+        # Dibujar la sombra del texto
+        self.SCREEN.blit(self.texto_jugar_sombra, (self.rect_texto_jugar.x + 2, self.rect_texto_jugar.y + 2))
+
+        # Dibujar el texto encima
+        self.SCREEN.blit(self.texto_jugar, self.rect_texto_jugar.topleft)
+        pygame.display.update()
+
+    def pantalla_final(self):
+        self.SCREEN.blit(self.background, (0, 0))
+        self.SCREEN.blit(self.clouds_up, (0, 0))
+        self.SCREEN.blit(self.clouds_down, (0, 0))
+        self.SCREEN.blit(self.ground, (0, 0))
+        # Dibujar perro
+
+        # Obtener el rectángulo del sprite/texto
+        rect_game = self.game.get_rect()
+        rect_over = self.over.get_rect()
+        # Centrar el rectángulo en la pantalla
+        rect_game.center = (self.SCREEN_WIDTH / 2, self.SCREEN_HEIGHT / 2)
+        rect_over.center = (self.SCREEN_WIDTH / 2, self.SCREEN_HEIGHT / 2)
+        # Opcional: Si quieres moverlo un poco hacia arriba o abajo
+        rect_game.y -= 200  # por ejemplo, mover 100 píxeles hacia arriba
+        rect_over.y -= 100  # por ejemplo, mover 100 píxeles hacia arriba
+    
+        # Dibujarlo
+        self.SCREEN.blit(self.game, rect_game)
+        self.SCREEN.blit(self.over, rect_over)
+
+        # Dibujar el botón (fondo)
+        pygame.draw.rect(self.SCREEN, "#FB6222", self.boton_salir, border_radius=10)  # Botón blanco
+
+        # Dibujar la sombra del texto
+        self.SCREEN.blit(self.texto_salir_sombra, (self.rect_texto_salir.x + 2, self.rect_texto_salir.y + 2))
+
+        # Dibujar el texto encima
+        self.SCREEN.blit(self.texto_salir, self.rect_texto_salir.topleft)
         pygame.display.update()
 
     def generar_patos(self):
@@ -113,8 +172,15 @@ class Juego:
             if event.type == pygame.QUIT:
                 self.running = False
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if self.boton_jugar.collidepoint(event.pos):
+                if self.mostrar_inicio and self.boton_jugar.collidepoint(event.pos):
                     self.mostrar_inicio = False
+                    self.mostrar_final = False
+                    self.tiempo_inicio = pygame.time.get_ticks()
+                elif self.mostrar_final and self.boton_salir.collidepoint(event.pos):
+                    self.mostrar_final = False
+                    self.mostrar_inicio = True
+                    self.resetear_juego()
+
 
     def actualizar(self):
         # Calcular el tiempo transcurrido desde el inicio del juego
@@ -151,7 +217,7 @@ class Juego:
 
         if self.tiempo_restante <= 0:
             print("¡Tiempo agotado! Has perdido.")
-            self.running = False
+            self.mostrar_final = True
 
     def dibujar(self):
         self.SCREEN.blit(self.background, (0, 0))
@@ -171,11 +237,26 @@ class Juego:
         self.SCREEN.blit(font.render(f"Nivel: {self.nivel}", True, (0, 0, 0)), (10, 10))
         self.SCREEN.blit(font.render(f"Tiempo: {int(self.tiempo_restante / 1000)}", True, (0, 0, 0)), (self.SCREEN_WIDTH - 150, 10))
 
+    def resetear_juego(self):
+        self.nivel = 1
+        self.patos_en_nivel = 5
+        self.velocidad_patos = 5
+        self.patos = []
+        self.patos_mortos = 0
+        self.tiempo_restante = self.tiempo_limite
+        self.tiempo_inicio = pygame.time.get_ticks()
+        self.generar_patos()
+
+
     def ejecutar(self):
         while self.running:
             self.manejar_eventos()
             if self.mostrar_inicio:
                 self.pantalla_inicio()
+
+            elif self.mostrar_final:
+                self.pantalla_final()
+
             else:
                 self.manejar_eventos()
                 self.actualizar()
