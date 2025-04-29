@@ -101,7 +101,7 @@ class Juego:
             self.musica_actual = None  # limpiar la referencia
             return
 
-        if self.nivel >= 5:
+        if self.nivel >= 7:
             nueva_musica = "assets/ui/leading_the_charge_loopable.wav"
         else:
             nueva_musica = "assets/ui/MeltdownTheme.wav"
