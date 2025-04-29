@@ -1,7 +1,10 @@
 import pygame
 from patos import Pato
+from perro import Perro
 from mano import DetectorMano
+import threading
 import time
+
  # version disparo automatico
 class Juego:
     def __init__(self):
@@ -15,8 +18,11 @@ class Juego:
         self.running = True
         self.mostrar_inicio = True
         self.mostrar_final = False
-
+        self.lock_mano = threading.Lock()  # Crear un Lock
         self.detector_mano = DetectorMano(self.SCREEN_WIDTH, self.SCREEN_HEIGHT)
+        self.hilo_mano = threading.Thread(target=self.hilo_detector_mano)
+        self.hilo_mano.daemon = True  # Para que se cierre automáticamente al salir
+        self.hilo_mano.start()
 
         # Cargar imágenes
         self.background = pygame.image.load("assets/bg/sprite_bg.png")
@@ -34,6 +40,9 @@ class Juego:
         self.rostros = pygame.image.load("assets/rostros.png").convert_alpha()
         self.game = pygame.image.load("assets/game.png").convert_alpha()
         self.over = pygame.image.load("assets/over.png").convert_alpha()
+
+        self.perro_inicio = Perro(animacion="derecha")  # Animación de perro para la pantalla de inicio
+        self.perro_final = Perro(animacion="diagonal_derecha")  # Animación de perro para la pantalla final
 
         # Botones
         # Crear el texto del botón
@@ -55,23 +64,26 @@ class Juego:
         self.boton_jugar = self.rect_texto_jugar.inflate(40, 20)  # Más ancho y más alto
         self.boton_salir = self.rect_texto_salir.inflate(40, 20)  # Más ancho y más alto
 
-        # Cargar sonidos
-        pygame.mixer.music.load("assets/ui/MeltdownTheme.wav")
-        pygame.mixer.music.set_volume(0.5)
-        pygame.mixer.music.play(-1)
+        self.sonido_gameover = pygame.mixer.Sound("assets/ui/game-over-arcade-6435.mp3")
+        self.sonido_gameover_reproducido = False
+
 
         self.sonido_disparo = pygame.mixer.Sound("assets/ui/disparo.mp3")
         self.sonido_disparo.set_volume(0.7)
         self.sonido_pato = pygame.mixer.Sound("assets/duck/duck.mp3")
         self.sonido_pato.set_volume(0.7)
+        pygame.mixer.init()
+        self.musica_actual = None
+
 
         # Variables del juego
         self.nivel = 1
+        self.nivel_anterior = None
         self.patos_en_nivel = 5
-        self.velocidad_patos = 5
+        self.velocidad_patos = 1.5
         self.patos = []
         self.patos_mortos = 0
-        self.tiempo_limite = 30 * 1000  # ms
+        self.tiempo_limite = 35 * 1000  # ms
         self.tiempo_restante = self.tiempo_limite
         self.tiempo_entre_patos = 1500
         self.tiempo_ultimo_pato = pygame.time.get_ticks()
@@ -81,18 +93,38 @@ class Juego:
         self.patos_inicio = [Pato() for _ in range(5)]  # Crea 5 patos
         self.generar_patos()
 
+    def actualizar_musica(self):
+        nueva_musica = None
+
+        if self.mostrar_final:
+            pygame.mixer.music.stop()
+            self.musica_actual = None  # limpiar la referencia
+            return
+
+        if self.nivel >= 5:
+            nueva_musica = "assets/ui/leading_the_charge_loopable.wav"
+        else:
+            nueva_musica = "assets/ui/MeltdownTheme.wav"
+
+        if nueva_musica != self.musica_actual:
+            pygame.mixer.music.load(nueva_musica)
+            pygame.mixer.music.set_volume(0.5)
+            pygame.mixer.music.play(-1)
+            self.musica_actual = nueva_musica
+
     def pantalla_inicio(self):
         self.SCREEN.blit(self.background, (0, 0))
         self.SCREEN.blit(self.clouds_up, (0, 0))
         self.SCREEN.blit(self.clouds_down, (0, 0))
-        self.SCREEN.blit(self.ground, (0, 0))
         # Dibujar patos
         for pato in self.patos_inicio:
             pato.mover()
             pato.actualizar_animacion()
             pato.chequear_tierra()
             pato.dibujar(self.SCREEN)
-
+        self.SCREEN.blit(self.ground, (0, 0))
+        self.perro_inicio.actualizar_animacion()
+        self.perro_inicio.dibujar(self.SCREEN)
         # Obtener el rectángulo del sprite/texto
         rect_cazadores = self.cazadores.get_rect()
         rect_de = self.de.get_rect()
@@ -105,6 +137,7 @@ class Juego:
         rect_cazadores.y -= 200  # por ejemplo, mover 100 píxeles hacia arriba
         rect_de.y -= 100  # por ejemplo, mover 100 píxeles hacia arriba
         rect_rostros.y -= 0  # por ejemplo, mover 100 píxeles hacia arriba
+        
         # Dibujarlo
         self.SCREEN.blit(self.cazadores, rect_cazadores)
         self.SCREEN.blit(self.de, rect_de)
@@ -118,13 +151,19 @@ class Juego:
 
         # Dibujar el texto encima
         self.SCREEN.blit(self.texto_jugar, self.rect_texto_jugar.topleft)
+        # Actualizar y dibujar el perro con su animación correspondiente
         pygame.display.update()
 
     def pantalla_final(self):
+        if not self.sonido_gameover_reproducido:
+            self.sonido_gameover.play()
+            self.sonido_gameover_reproducido = True
         self.SCREEN.blit(self.background, (0, 0))
         self.SCREEN.blit(self.clouds_up, (0, 0))
         self.SCREEN.blit(self.clouds_down, (0, 0))
         self.SCREEN.blit(self.ground, (0, 0))
+        self.perro_final.actualizar_animacion()
+        self.perro_final.dibujar(self.SCREEN)
         # Dibujar perro
 
         # Obtener el rectángulo del sprite/texto
@@ -140,6 +179,8 @@ class Juego:
         # Dibujarlo
         self.SCREEN.blit(self.game, rect_game)
         self.SCREEN.blit(self.over, rect_over)
+
+        self.SCREEN.blit(self.font_menu.render(f"Nivel: {self.nivel}", True, "#FB6222"), (10, 10))
 
         # Dibujar el botón (fondo)
         pygame.draw.rect(self.SCREEN, "#FB6222", self.boton_salir, border_radius=10)  # Botón blanco
@@ -163,14 +204,16 @@ class Juego:
         self.velocidad_patos += 0.5
         self.patos = []
         self.patos_mortos = 0
+        self.tiempo_limite = min(self.tiempo_limite + 5000, 60000)
         self.tiempo_restante = self.tiempo_limite
-        self.tiempo_inicio = pygame.time.get_ticks()  # 🔥 Reinicia el tiempo base aquí
+        self.tiempo_inicio = pygame.time.get_ticks()  # Reinicia el tiempo base aquí
         self.generar_patos()
 
     def manejar_eventos(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
+                self.hilo_mano.join()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if self.mostrar_inicio and self.boton_jugar.collidepoint(event.pos):
                     self.mostrar_inicio = False
@@ -187,14 +230,14 @@ class Juego:
         tiempo_transcurrido = pygame.time.get_ticks() - self.tiempo_inicio
         self.tiempo_restante = max(0, self.tiempo_limite - tiempo_transcurrido)
 
-        self.detector_mano.actualizar()
+        #self.detector_mano.actualizar()
         cursor_pos = self.detector_mano.cursor
 
         # Detectar el contacto del cursor con los patos
         for pato in self.patos:
             if pato.rect.collidepoint(cursor_pos) and not pato.muerto:
                 distancia = ((pato.rect.centerx - cursor_pos[0])**2 + (pato.rect.centery - cursor_pos[1])**2)**0.5
-                if distancia < 20:  # Si el cursor está lo suficientemente cerca
+                if distancia < 40:  # Si el cursor está lo suficientemente cerca
                     pato.muerto = True
                     pato.frame_actual = 0
                     pato.tiempo_animacion = 0
@@ -234,23 +277,31 @@ class Juego:
         self.SCREEN.blit(self.puntero, puntero_rect.topleft)
 
         font = pygame.font.SysFont(None, 36)
-        self.SCREEN.blit(font.render(f"Nivel: {self.nivel}", True, (0, 0, 0)), (10, 10))
-        self.SCREEN.blit(font.render(f"Tiempo: {int(self.tiempo_restante / 1000)}", True, (0, 0, 0)), (self.SCREEN_WIDTH - 150, 10))
+        self.SCREEN.blit(self.font_menu.render(f"Nivel: {self.nivel}", True, "#FB6222"), (10, 10))
+        self.SCREEN.blit(self.font_menu.render(f"Tiempo: {int(self.tiempo_restante / 1000)}", True, "#FB6222"), (self.SCREEN_WIDTH - 200, 10))
 
     def resetear_juego(self):
         self.nivel = 1
         self.patos_en_nivel = 5
-        self.velocidad_patos = 5
+        self.velocidad_patos = 1.5
         self.patos = []
         self.patos_mortos = 0
+        self.tiempo_limite = 35 * 1000  # ms
         self.tiempo_restante = self.tiempo_limite
         self.tiempo_inicio = pygame.time.get_ticks()
         self.generar_patos()
+        self.sonido_gameover_reproducido = False
 
+    def hilo_detector_mano(self):
+        while self.running:
+            with self.lock_mano:  # Adquiere el lock antes de actualizar
+                self.detector_mano.actualizar()
+            #time.sleep(0.05)  # Intervalo para la actualización del detector de manos
 
     def ejecutar(self):
         while self.running:
             self.manejar_eventos()
+            self.actualizar_musica()
             if self.mostrar_inicio:
                 self.pantalla_inicio()
 
@@ -258,13 +309,13 @@ class Juego:
                 self.pantalla_final()
 
             else:
-                self.manejar_eventos()
                 self.actualizar()
                 self.dibujar()
-                pygame.display.flip()
-                self.timer.tick(self.fps)
-
+                pygame.display.update()
+                #self.timer.tick(self.fps)
+            self.timer.tick(self.fps)
         self.detector_mano.cerrar()
+        self.hilo_mano.join()
         pygame.quit()
 
 # Version dos mecanicas de disparo y apuntado

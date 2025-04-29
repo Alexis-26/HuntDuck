@@ -12,7 +12,9 @@ class Pato:
         self.frames_muerto = []
         self.frame_actual = 0
         self.tiempo_animacion = 0
-        self.ajustar_animacion = 1  # Velocidad de animación: menor = más rápida
+        self.ajustar_animacion = 70  # Velocidad de animación: menor = más rápida
+        self.ultimo_cambio_animacion = pygame.time.get_ticks()
+
 
         # Cargar imagen con sprites
         sprite_sheet = pygame.image.load("assets/duck/sprite_newduck_right.png").convert_alpha()
@@ -46,8 +48,11 @@ class Pato:
         self.ZONA_TIERRA_Y = 540
         self.rect.x = random.randint(0, 768 - self.rect.width)
         self.rect.y = 540  # Inicio desde zona de tierra
+        self.pos_x = float(self.rect.x)
+        self.pos_y = float(self.rect.y)
 
-        self.velocidad = 3  # Velocidad de movimiento
+
+        self.velocidad = 1.5  # Velocidad de movimiento
         self.direccion = "derecha"  # Dirección inicial
         self.nuevo_destino()  # Definir un destino aleatorio al inicio
 
@@ -56,32 +61,44 @@ class Pato:
 
 
     def nuevo_destino(self):
-        # Escoge una posición aleatoria dentro de los límites de la pantalla
-        self.destino_x = random.randint(0, 768 - self.rect.width)
-        self.destino_y = random.randint(0, 300)
+        while True:
+            destino_x = random.randint(0, 768 - self.rect.width)
+            destino_y = random.randint(0, 300)
+            dx = destino_x - self.pos_x
+            dy = destino_y - self.pos_y
+            distancia = math.hypot(dx, dy)
+            if distancia > 50:  # Solo acepta destinos con una distancia mínima
+                break
+
+        self.destino_x = destino_x
+        self.destino_y = destino_y
 
     def mover(self):
         if self.muerto:
             self.caer()
             return
-        dx = self.destino_x - self.rect.x
-        dy = self.destino_y - self.rect.y
+
+        dx = self.destino_x - self.pos_x
+        dy = self.destino_y - self.pos_y
         distancia = math.hypot(dx, dy)
 
         if distancia < 5:
             self.nuevo_destino()
         else:
             dx, dy = dx / distancia, dy / distancia
-            self.rect.x += dx * self.velocidad
-            self.rect.y += dy * self.velocidad
+            self.pos_x += dx * self.velocidad
+            self.pos_y += dy * self.velocidad
+            self.rect.x = int(self.pos_x)
+            self.rect.y = int(self.pos_y)
 
         # Cambiar la dirección dependiendo de la posición
         if dx < 0:
             self.direccion = "izquierda"
         else:
             self.direccion = "derecha"
-        
-        self.subiendo = dy < 0  # Si el movimiento en Y es negativo, está subiendo
+
+        self.subiendo = dy < 0
+
 
     def caer(self):
         self.vel_caida += self.gravedad
@@ -95,9 +112,10 @@ class Pato:
             self.image = self.frames_muerto[self.frame_actual]
 
     def actualizar_animacion(self):
-        self.tiempo_animacion += 1
-        if self.tiempo_animacion >= self.ajustar_animacion:
-            self.tiempo_animacion = 0
+        tiempo_actual = pygame.time.get_ticks()
+        
+        if tiempo_actual - self.ultimo_cambio_animacion >= self.ajustar_animacion:
+            self.ultimo_cambio_animacion = tiempo_actual
             self.frame_actual += 1
 
             if self.muerto:
@@ -120,9 +138,10 @@ class Pato:
                         self.image = self.frames_izquierda[self.frame_actual]
 
 
+
     def dibujar(self, pantalla):
         pantalla.blit(self.image, self.rect)
-        pygame.draw.rect(pantalla, (255, 0, 0), self.rect, 2) 
+        #pygame.draw.rect(pantalla, (255, 0, 0), self.rect, 2) 
 
     def chequear_tierra(self):
         """Verifica si el pato ha llegado a la zona de tierra"""
