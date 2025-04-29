@@ -204,7 +204,7 @@ class Juego:
         self.velocidad_patos += 0.5
         self.patos = []
         self.patos_mortos = 0
-        self.tiempo_limite = min(self.tiempo_limite + 5000, 60000)
+        self.tiempo_limite = min(self.tiempo_limite + 2000, 45000)
         self.tiempo_restante = self.tiempo_limite
         self.tiempo_inicio = pygame.time.get_ticks()  # Reinicia el tiempo base aquí
         self.generar_patos()
@@ -237,7 +237,7 @@ class Juego:
         for pato in self.patos:
             if pato.rect.collidepoint(cursor_pos) and not pato.muerto:
                 distancia = ((pato.rect.centerx - cursor_pos[0])**2 + (pato.rect.centery - cursor_pos[1])**2)**0.5
-                if distancia < 40:  # Si el cursor está lo suficientemente cerca
+                if distancia < 20:  # Si el cursor está lo suficientemente cerca
                     pato.muerto = True
                     pato.frame_actual = 0
                     pato.tiempo_animacion = 0
