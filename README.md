@@ -3,17 +3,14 @@
 
 **Cazadores de Rostros** es un juego estilo *Duck Hunt* hecho con **Python**, **MediaPipe** y **Pygame**, en el que **usas tu rostro frente a la cámara para apuntar y disparar**.
 
-![demo](https://user-images.githubusercontent.com/tu_demo/demo.gif)  
-*(Agrega aquí un GIF o video mostrando el gameplay)*
-
 ---
 
 ## 🎮 ¿De qué se trata?
 
 Este juego es una reinvención moderna del clásico *Duck Hunt*, donde en lugar de usar un mouse o un control, **usas tu rostro como puntero detectado por la cámara** para interactuar con el juego.
 
-🖐️ **Mueves tu rostro** → el cursor se mueve en la pantalla  
-✊ **Si el Pato colisiona con el puntero** → ¡disparas!
+🧏‍♂️ **Mueves tu rostro** → el cursor se mueve en la pantalla  
+🦆 **Si el Pato colisiona con el puntero** → ¡disparas!
 
 ---
 
@@ -42,7 +39,16 @@ Este juego es una reinvención moderna del clásico *Duck Hunt*, donde en lugar 
 - MediaPipe
 - Pygame
 
+## ▶️ Cómo jugar
+
 Instala las dependencias con:
 
 ```bash
-pip install opencv-python mediapipe pygame
+pip install -r requirements.txt
+```
+
+Ejecuta
+
+```bash
+python main.py
+```
